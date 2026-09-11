@@ -1,0 +1,29 @@
+{
+  "catchments": {
+    "source": "HydroSHEDS HydroBASINS",
+    "datasetVersion": "v1.c (level 8, Asia, 2014 release)",
+    "file": "hybas_as_lev08_v1c.zip",
+    "sha1": "1cd88173c3e33685472cc657309b155004ad1573",
+    "sizeBytes": 83669308,
+    "retrievedAt": "2026-09-11T04:36:17.395Z",
+    "crs": "EPSG:4326 (WGS 84, longitude/latitude)",
+    "crsWkt": "GEOGCS[\"GCS_WGS_1984\",DATUM[\"D_WGS_1984\",SPHEROID[\"WGS_1984\",6378137.0,298.257223563]],PRIMEM[\"Greenwich\",0.0],UNIT[\"Degree\",0.0174532925199433],METADATA[\"World\",-180.0,-90.0,180.0,90.0,0.0,0.0174532925199433,0.0,1262]]",
+    "licenseUrl": "https://www.hydrosheds.org/page/license",
+    "citation": "Lehner, B., Grill G. (2013). Global river hydrography and network routing: baseline data and new approaches to study the world's large river systems. Hydrological Processes, 27(15): 2171–2186.",
+    "quality": "observed",
+    "notes": "Level-8 sub-basin units derived from 15 arc-second HydroSHEDS elevation data. They are hydrological units, not administrative districts, and they are not flood inundation extents."
+  },
+  "rivers": {
+    "source": "HydroSHEDS HydroRIVERS",
+    "datasetVersion": "v1.0 (Asia, 2019 release)",
+    "file": "HydroRIVERS_v10_as_shp.zip",
+    "sha1": "f9d7b7d8c270265082e8f0e2fab8574c0e02f9f7",
+    "sizeBytes": 207445068,
+    "retrievedAt": "2026-09-11T04:36:17.395Z",
+    "crs": "EPSG:4326 (WGS 84, longitude/latitude)",
+    "licenseUrl": "https://www.hydrosheds.org/page/license",
+    "citation": "Lehner, B., Grill G. (2013).",
+    "quality": "observed",
+    "notes": "Reaches with upstream area ≥10 km² or average flow ≥0.1 m³/s. DIS_AV_CMS is a long-term modelled average, not a live gauge."
+  }
+}

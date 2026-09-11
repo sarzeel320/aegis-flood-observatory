@@ -1,0 +1,15 @@
+{
+  "description": "Study sites used to select authoritative HydroBASINS level-8 catchments. The coordinates are place seeds, not catchment geometry. The catchment polygon is the HydroBASINS unit that contains the seed point.",
+  "sites": [
+    { "id": "kedarnath", "name": "Kedarnath", "state": "Uttarakhand", "group": "Himalayas", "lat": 30.7352, "lon": 79.0669, "river": "Mandakini" },
+    { "id": "manali", "name": "Manali", "state": "Himachal Pradesh", "group": "Himalayas", "lat": 32.2432, "lon": 77.1892, "river": "Upper Beas" },
+    { "id": "gangtok", "name": "Gangtok", "state": "Sikkim", "group": "Northeast", "lat": 27.3389, "lon": 88.6065, "river": "Teesta" },
+    { "id": "wayanad", "name": "Wayanad", "state": "Kerala", "group": "Western Ghats", "lat": 11.6854, "lon": 76.1320, "river": "Kabini headwaters" },
+    { "id": "srinagar", "name": "Srinagar", "state": "Jammu & Kashmir", "group": "Himalayas", "lat": 34.0837, "lon": 74.7973, "river": "Jhelum" },
+    { "id": "shillong", "name": "Shillong", "state": "Meghalaya", "group": "Northeast", "lat": 25.5788, "lon": 91.8933, "river": "Umkhrah" },
+    { "id": "tawang", "name": "Tawang", "state": "Arunachal Pradesh", "group": "Northeast", "lat": 27.5861, "lon": 91.8594, "river": "Tawang Chu" },
+    { "id": "darjeeling", "name": "Darjeeling", "state": "West Bengal", "group": "Eastern hills", "lat": 27.0410, "lon": 88.2663, "river": "Rangeet" },
+    { "id": "ooty", "name": "Ooty", "state": "Tamil Nadu", "group": "Western Ghats", "lat": 11.4102, "lon": 76.6950, "river": "Nilgiri headwaters" },
+    { "id": "mahabaleshwar", "name": "Mahabaleshwar", "state": "Maharashtra", "group": "Western Ghats", "lat": 17.9307, "lon": 73.6477, "river": "Krishna headwaters" }
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "name": "aegis-flood-observatory",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "description": "India mountain flood observatory: frontend, catchment intelligence backend and research pipeline",
+  "scripts": {
+    "dev": "node server.mjs",
+    "start": "node server.mjs",
+    "test": "node --test tests/*.test.mjs",
+    "check": "node --check server.mjs && node --check lib/app.mjs && node --check public/src/app.js && node --check public/src/globe.js && node --check public/src/model.js",
+    "ingest:catchments": "node scripts/ingest-catchments.mjs",
+    "ingest:forecasts": "node scripts/archive-forecasts.mjs",
+    "ingest:history": "node scripts/ingest-power.mjs",
+    "labels:groundsource": "python3 scripts/groundsource.py",
+    "train": "node scripts/train-baseline.mjs",
+    "export:postgis": "node scripts/export-postgis.mjs"
+  },
+  "engines": { "node": ">=22.13" }
+}
