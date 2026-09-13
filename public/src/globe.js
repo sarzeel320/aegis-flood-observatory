@@ -4,12 +4,15 @@
 // Catchment geometry comes from /api/v1/catchments (HydroBASINS); colouring is the demonstration index only.
 import { regions, riskIndex, riskColor } from './model.js';
 import { loadCatchments, loadRivers } from './catalog.js';
+import { loadBaseStyle, waitForStyle } from './map-style.js';
 const STYLE_URL = 'https://tiles.openfreemap.org/styles/liberty';
 const IMAGERY = { type: 'raster', tiles: ['https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'], tileSize: 256, maxzoom: 17, attribution: 'Imagery © Esri, Maxar, Earthstar Geographics, GIS User Community' };
 const DEM = { type: 'raster-dem', tiles: ['https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png'], encoding: 'terrarium', tileSize: 256, maxzoom: 15, attribution: 'Terrain © <a href="https://registry.opendata.aws/terrain-tiles/">AWS Terrain Tiles</a> (Mapzen, SRTM, Copernicus)' };
 const INDIA = { center: [81.5, 24.5], zoom: 4.1 };
 let maplibregl, hero, map, mode = '3D', filter = 'All', currentHour = 0, selectedId = regions[0].id, boundaries = null, pendingFocus = false, ready = false;
 const overrides = new Map(), riverLoaded = new Set();
+let fallbackBasemap = false;
+const fallbackLabels = new Map();
 const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 let selectionCallback = () => {};
 function failure(id, message) { const target = document.getElementById(id); target.replaceChildren(); const p = document.createElement('div'); p.className = 'map-loading'; p.textContent = message; target.append(p); }
@@ -39,10 +42,12 @@ async function initializeMap() {
   try {
     document.getElementById('risk-map').replaceChildren();
     try { boundaries = await loadCatchments(); } catch { boundaries = null; }
-    map = new maplibregl.Map({ container: 'risk-map', style: STYLE_URL, center: INDIA.center, zoom: INDIA.zoom, minZoom: 2.5, maxZoom: 15, scrollZoom: false, attributionControl: { compact: true }, maxPitch: 70 });
+    const base = await loadBaseStyle(STYLE_URL);
+    fallbackBasemap = base.fallback;
+    map = new maplibregl.Map({ container: 'risk-map', style: base.style, center: INDIA.center, zoom: INDIA.zoom, minZoom: 2.5, maxZoom: 15, scrollZoom: false, attributionControl: { compact: true }, maxPitch: 70 });
     map.addControl(new maplibregl.NavigationControl({ showCompass: true, visualizePitch: true }), 'top-right');
     map.on('error', e => { if (/tiles\.openfreemap|arcgisonline|amazonaws/.test(String(e?.error?.message || e?.error?.url || ''))) notice('Some map tiles are unavailable · catchment data remains usable'); });
-    await new Promise((resolve, reject) => { map.once('load', resolve); map.once('error', reject); setTimeout(() => reject(new Error('style timeout')), 20000); });
+    await waitForStyle(map);
     const firstSymbol = map.getStyle().layers.find(l => l.type === 'symbol')?.id;
     map.addSource('imagery', IMAGERY); map.addSource('dem', DEM);
     map.addLayer({ id: 'imagery', type: 'raster', source: 'imagery', layout: { visibility: 'none' }, paint: { 'raster-brightness-max': .85, 'raster-saturation': -.3, 'raster-contrast': .1 } }, firstSymbol);
@@ -56,14 +61,23 @@ async function initializeMap() {
     }
     map.addSource('points', { type: 'geojson', data: pointCollection(), promoteId: 'id' });
     map.addLayer({ id: 'catchment-points', type: 'circle', source: 'points', paint: { 'circle-radius': 5, 'circle-color': ['coalesce', ['feature-state', 'color'], '#efc36e'], 'circle-stroke-color': '#17231b', 'circle-stroke-width': 2, 'circle-opacity': ['case', ['boolean', ['feature-state', 'visible'], true], 1, 0], 'circle-stroke-opacity': ['case', ['boolean', ['feature-state', 'visible'], true], 1, 0] } });
-    map.addLayer({ id: 'catchment-labels', type: 'symbol', source: 'points', layout: { 'text-field': ['get', 'name'], 'text-size': 12, 'text-offset': [0, -1.4], 'text-anchor': 'bottom', 'text-font': ['Noto Sans Regular'] }, paint: { 'text-color': '#e9eadb', 'text-halo-color': '#101817', 'text-halo-width': 1.5, 'text-opacity': ['case', ['boolean', ['feature-state', 'visible'], true], 1, 0] } });
+    // HTML labels remain readable even when the vector provider's font service fails.
+    for (const point of pointCollection().features) {
+      const label = document.createElement('button');
+      label.textContent = point.properties.name;
+      label.className = 'catchment-map-label';
+      label.setAttribute('aria-label', `Explore ${point.properties.name} on map`);
+      label.addEventListener('click', () => selectionCallback(point.id));
+      new maplibregl.Marker({ element: label, anchor: 'bottom', offset: [0, -10] }).setLngLat(point.geometry.coordinates).addTo(map);
+      fallbackLabels.set(point.id, label);
+    }
     map.on('click', 'catchment-points', e => { const id = e.features?.[0]?.properties?.id; if (id) selectionCallback(id); });
     ready = true;
     notice(boundaries ? `OpenFreeMap (OpenStreetMap) vector map · HydroBASINS ${boundaries.edition} boundaries · demonstration index colouring` : 'OpenFreeMap vector map · catchment boundaries unavailable, study points only');
     applyMode();
     if (pendingFocus) focusRegion(selectedId); else resetMap();
     updateMap(currentHour, filter);
-  } catch (error) { map?.remove?.(); map = undefined; ready = false; failure('risk-map', 'WebGL map unavailable. Select a region using the panel or watchlist.'); }
+  } catch (error) { console.error('Regional map initialization failed', error); map?.remove?.(); map = undefined; ready = false; fallbackLabels.clear(); failure('risk-map', 'Map could not initialize.'); const retry = document.createElement('button'); retry.className = 'button'; retry.textContent = 'Retry map'; retry.addEventListener('click', () => { riverLoaded.clear(); initializeMap(); }, { once: true }); document.getElementById('risk-map').append(retry); }
 }
 async function showRivers(id) {
   if (!ready || riverLoaded.has(id)) return; riverLoaded.add(id);
@@ -77,11 +91,11 @@ async function showRivers(id) {
 function applyMode() {
   if (!ready) return;
   const satellite = mode === '3D';
-  map.setLayoutProperty('imagery', 'visibility', satellite ? 'visible' : 'none');
+  map.setLayoutProperty('imagery', 'visibility', satellite || fallbackBasemap ? 'visible' : 'none');
   map.setLayoutProperty('hillshade', 'visibility', satellite ? 'visible' : 'none');
   if (satellite) { map.setTerrain({ source: 'dem', exaggeration: 1.25 }); map.easeTo({ pitch: 55, duration: reduced ? 0 : 900 }); }
   else { map.setTerrain(null); map.easeTo({ pitch: 0, bearing: 0, duration: reduced ? 0 : 900 }); }
-  notice(satellite ? `Esri imagery · AWS terrain tiles (3D) · HydroBASINS ${boundaries?.edition ?? ''} boundaries draped on terrain` : `OpenFreeMap (OpenStreetMap) vector map · HydroBASINS ${boundaries?.edition ?? ''} boundaries · demonstration index colouring`);
+  notice(satellite ? `Esri imagery · AWS terrain tiles (3D) · HydroBASINS ${boundaries?.edition ?? ''} boundaries draped on terrain` : `${fallbackBasemap ? 'Satellite fallback (2D) · street basemap temporarily unavailable' : 'OpenFreeMap (OpenStreetMap) vector map'} · HydroBASINS boundaries · demonstration index colouring`);
 }
 export function setMode(next) { mode = next; applyMode(); }
 export function resetMap() { if (!ready) return; map.flyTo({ center: INDIA.center, zoom: INDIA.zoom, pitch: mode === '3D' ? 35 : 0, bearing: 0, duration: reduced ? 0 : 1200 }); }
@@ -100,6 +114,7 @@ export function updateMap(hour, group) {
     const score = riskIndex(overrides.get(region.id) || region, hour);
     const inGroup = group === 'All' || region.group === group, filled = inGroup && score >= 40;
     const color = riskColor(score);
+    const label = fallbackLabels.get(region.id); if (label) label.style.display = inGroup ? '' : 'none';
     if (boundaries && map.getSource('catchments')) map.setFeatureState({ source: 'catchments', id: region.id }, { color, filled, visible: inGroup });
     map.setFeatureState({ source: 'points', id: region.id }, { color, visible: inGroup });
   }
