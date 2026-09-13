@@ -95,7 +95,7 @@ test('notifications: consent, verification, authority approval, held deliveries,
   const id = sub.json.subscription.id;
   assert.equal((await client(`/api/v1/subscriptions/${id}/verify`, { method: 'POST', body: { code: '000000' } })).status, 400);
   assert.equal((await client(`/api/v1/subscriptions/${id}/verify`, { method: 'POST', body: { code: sub.json.verification.devVerificationCode } })).json.subscription.status, 'active');
-  const draft = await client('/api/v1/advisories', { method: 'POST', body: { catchmentId: 'kedarnath', authority: 'District Emergency Operations Centre (test)', issuedAt: '2026-09-12T05:00:00Z', expiresAt: '2026-09-12T17:00:00Z', affectedArea: 'Mandakini valley', recommendedAction: 'Move to higher ground', officialLink: 'https://example.org/warning/1' } });
+  const draft = await client('/api/v1/advisories', { method: 'POST', body: { catchmentId: 'kedarnath', authority: 'District Emergency Operations Centre (test)', issuedAt: new Date(Date.now() - 60000).toISOString(), expiresAt: new Date(Date.now() + 43200000).toISOString(), affectedArea: 'Mandakini valley', recommendedAction: 'Move to higher ground', officialLink: 'https://example.org/warning/1' } });
   assert.equal(draft.status, 201); assert.equal(draft.json.advisory.status, 'draft'); assert.ok(draft.json.advisory.previews.hi.includes('चेतावनी')); assert.ok(draft.json.advisory.previews.en.includes('https://example.org/warning/1'));
   assert.equal((await client('/api/v1/advisories', { method: 'POST', body: { catchmentId: 'kedarnath', authority: 'x', issuedAt: '2026-09-12T05:00:00Z', expiresAt: '2026-09-12T04:00:00Z', affectedArea: 'a', recommendedAction: 'b', officialLink: 'http://insecure' } })).status, 400);
   const advId = draft.json.advisory.id;
@@ -105,7 +105,7 @@ test('notifications: consent, verification, authority approval, held deliveries,
   assert.equal(approved.status, 200); assert.equal(approved.json.advisory.status, 'issued'); assert.equal(approved.json.deliveries.recipients, 1); assert.equal(approved.json.deliveries.created, 1); assert.match(approved.json.deliveries.status, /held/);
   assert.equal((await client(`/api/v1/advisories/${advId}/approve`, { method: 'POST', body: {}, headers: { Authorization: 'Bearer authority-key-123' } })).status, 409, 'cannot approve twice');
   const deliveries = await client(`/api/v1/advisories/${advId}/deliveries`); assert.equal(deliveries.json.deliveries[0].status, 'held');
-  const update = await client('/api/v1/advisories', { method: 'POST', body: { catchmentId: 'kedarnath', authority: 'DEOC (test)', issuedAt: '2026-09-12T06:00:00Z', expiresAt: '2026-09-12T18:00:00Z', affectedArea: 'Mandakini valley', recommendedAction: 'Updated action', officialLink: 'https://example.org/warning/2', supersedes: advId } });
+  const update = await client('/api/v1/advisories', { method: 'POST', body: { catchmentId: 'kedarnath', authority: 'DEOC (test)', issuedAt: new Date().toISOString(), expiresAt: new Date(Date.now() + 46800000).toISOString(), affectedArea: 'Mandakini valley', recommendedAction: 'Updated action', officialLink: 'https://example.org/warning/2', supersedes: advId } });
   const approvedUpdate = await client(`/api/v1/advisories/${update.json.advisory.id}/approve`, { method: 'POST', body: {}, headers: { Authorization: 'Bearer authority-key-123' } });
   assert.equal(approvedUpdate.status, 200); assert.equal((await client(`/api/v1/advisories/${advId}`)).json.advisory.status, 'superseded');
   const cancelled = await client(`/api/v1/advisories/${update.json.advisory.id}/cancel`, { method: 'POST', body: { reason: 'test' }, headers: { Authorization: 'Bearer authority-key-123' } });
@@ -119,6 +119,6 @@ test('notifications: consent, verification, authority approval, held deliveries,
 });
 test('approval is disabled entirely when no authority key is configured', async t => {
   const ctx = await startApp(); t.after(ctx.close); const { client } = ctx;
-  const draft = await client('/api/v1/advisories', { method: 'POST', body: { catchmentId: 'ooty', authority: 'Test', issuedAt: '2026-09-12T05:00:00Z', expiresAt: '2026-09-12T17:00:00Z', affectedArea: 'Nilgiris', recommendedAction: 'Test', officialLink: 'https://example.org/w' } });
+  const draft = await client('/api/v1/advisories', { method: 'POST', body: { catchmentId: 'ooty', authority: 'Test', issuedAt: new Date(Date.now() - 60000).toISOString(), expiresAt: new Date(Date.now() + 43200000).toISOString(), affectedArea: 'Nilgiris', recommendedAction: 'Test', officialLink: 'https://example.org/w' } });
   assert.equal((await client(`/api/v1/advisories/${draft.json.advisory.id}/approve`, { method: 'POST', body: {}, headers: { Authorization: 'Bearer anything' } })).status, 503);
 });

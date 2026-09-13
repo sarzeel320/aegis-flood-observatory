@@ -64,6 +64,14 @@ npm run train                                            # metrics.json, weights
 
 ## Host it online
 
+### Free Vercel deployment
+
+Import this repository into Vercel on the Hobby plan. The root `server.mjs` is the Node server entrypoint; `vercel.json` includes the application assets and datasets. No database subscription or API key is required for the existing map and weather features.
+
+Vercel uses `/tmp/aegis.sqlite`, which is temporary and private to each server instance. Saved scenarios, forecast archives, subscriptions and audit records can reset on restart or redeployment and are not shared across instances. Use this deployment for research demonstrations, not durable records or message delivery. Bundled research datasets remain available. A persistent database is required before relying on saved records in production.
+
+### Other Node hosts
+
 The server is a single Node process with no build step and no native dependencies. Any host that runs Node 22.13+ works.
 
 - Set `HOST=0.0.0.0` and let the platform supply `PORT`. Set `NODE_ENV=production`, `TRUST_PROXY=true` behind a load balancer, and `ALLOWED_ORIGINS` only if another site must call the API.

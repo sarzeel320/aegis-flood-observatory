@@ -16,5 +16,5 @@
     "train": "node scripts/train-baseline.mjs",
     "export:postgis": "node scripts/export-postgis.mjs"
   },
-  "engines": { "node": ">=22.13" }
+  "engines": { "node": "22.x" }
 }
